@@ -1,0 +1,6 @@
+{
+  "name": "HR Portal",
+  "description": "نظام بوابه الموارد البشرية المتكامل - لوحة تحكم، إدارة الموظفين، الإجازات، الرواتب، التوظيف، الهيكل التنظيمي، ومساعد الموارد البشرية الذكي",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

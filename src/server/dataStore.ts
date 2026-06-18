@@ -1,0 +1,345 @@
+import fs from "fs";
+import path from "path";
+import { Employee, Candidate, Job, LeaveRequest, Payslip, Announcement, AttendanceRecord, RequestItem } from "../types";
+
+const DB_FILE = path.join(process.cwd(), "db.json");
+
+interface DBState {
+  employees: Employee[];
+  candidates: Candidate[];
+  jobs: Job[];
+  leave_requests: LeaveRequest[];
+  payslips: Payslip[];
+  announcements: Announcement[];
+  attendance: AttendanceRecord[];
+  requests: RequestItem[];
+}
+
+const DEFAULT_EMPLOYEES: Employee[] = [
+  {
+    employee_id: "EMP001",
+    id_number: "0001",
+    employee_name_en: "Ahmed Mansour",
+    employee_name_ar: "أحمد منصور",
+    national_id: "1098765432",
+    department_en: "Engineering",
+    department_ar: "الهندسة والتقنية",
+    job_title_en: "Senior Full Stack Engineer",
+    job_title_ar: "مهندس برمجيات أول",
+    email: "ahmed.mansour@company.com",
+    phone: "+966 50 123 4567",
+    work_email: "a.mansour@hrportal.internal",
+    work_phone: "201",
+    address: "Riyadh, Al-Yasmin District",
+    join_date: "2024-01-15",
+    basic_salary: 15000,
+    status: "active",
+    branch: "Riyadh HQ",
+    photo_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+    education: {
+      degree: "Bachelor of Science",
+      field_of_study: "Computer Engineering",
+      university: "King Saud University",
+      graduation_date: "2020-06-15"
+    },
+    bank: {
+      bank_name: "Al Rajhi Bank",
+      account_number: "123456789012345",
+      iban: "SA8080000012345678901234"
+    },
+    relatives: [
+      { name: "Fatima Mansour", phone: "+966 50 123 4568", relationship: "Wife (الزوجة)", job: "Teacher" },
+      { name: "Khalid Mansour", phone: "+966 50 123 4569", relationship: "Brother (الأخ)", job: "Engineer" },
+      { name: "Ali Mansour", phone: "+966 50 223 4560", relationship: "Father (الأب)", job: "Retired" }
+    ],
+    reports_to: "EMP002",
+    is_lead: false
+  },
+  {
+    employee_id: "EMP002",
+    id_number: "0002",
+    employee_name_en: "Mohamed Zaki",
+    employee_name_ar: "محمد زكي",
+    national_id: "1023456789",
+    department_en: "Human Resources",
+    department_ar: "الموارد البشرية",
+    job_title_en: "HR Director & Owner",
+    job_title_ar: "مدير الموارد البشرية وصاحب الموقع",
+    email: "mohamed.zaki@company.com",
+    phone: "+966 55 987 6543",
+    work_email: "m.zaki@hrportal.internal",
+    work_phone: "101",
+    address: "Riyadh, Al-Malqa District",
+    join_date: "2022-05-10",
+    basic_salary: 18500,
+    status: "active",
+    branch: "Riyadh HQ",
+    photo_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+    education: {
+      degree: "Master of Business Administration",
+      field_of_study: "Human Resources Management",
+      university: "King Saud University",
+      graduation_date: "2018-05-20"
+    },
+    bank: {
+      bank_name: "SNB (البنك الأهلي)",
+      account_number: "987654321098765",
+      iban: "SA4030000098765432109876"
+    },
+    relatives: [
+      { name: "Fatma Zaki", phone: "+966 55 987 6540", relationship: "Wife (الزوجة)", job: "Doctor" },
+      { name: "Laila Zaki", phone: "+966 55 987 6541", relationship: "Sister (الأخت)", job: "Designer" },
+      { name: "Fahad Zaki", phone: "+966 55 987 6542", relationship: "Brother (الأخ)", job: "Lawyer" }
+    ],
+    reports_to: "",
+    is_lead: true
+  },
+  {
+    employee_id: "EMP003",
+    id_number: "0003",
+    employee_name_en: "Bandar Al-Otaibi",
+    employee_name_ar: "بندر العتيبي",
+    national_id: "1087452109",
+    department_en: "Marketing",
+    department_ar: "التسويق والاتصال",
+    job_title_en: "Marketing Coordinator",
+    job_title_ar: "منسق تسويق",
+    email: "bandar.o@company.com",
+    phone: "+966 53 111 2222",
+    work_email: "b.otaibi@hrportal.internal",
+    work_phone: "302",
+    address: "Jeddah, Ash Shati District",
+    join_date: "2025-09-01",
+    basic_salary: 8200,
+    status: "active",
+    branch: "Jeddah Office",
+    photo_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+    education: {
+      degree: "Bachelor of Arts",
+      field_of_study: "Marketing & PR",
+      university: "King Abdulaziz University",
+      graduation_date: "2023-01-30"
+    },
+    bank: {
+      bank_name: "Riyad Bank",
+      account_number: "555333222111000",
+      iban: "SA2020000555333222111000"
+    },
+    relatives: [
+      { name: "Mohammed Al-Otaibi", phone: "+966 53 111 2223", relationship: "Father (الأب)", job: "Retired" },
+      { name: "Nouf Al-Otaibi", phone: "+966 53 111 2224", relationship: "Sister (الأخت)", job: "Student" },
+      { name: "Saad Al-Otaibi", phone: "+966 53 111 2225", relationship: "Cousin (ابن عم)", job: "Accountant" }
+    ],
+    reports_to: "EMP002",
+    is_lead: false
+  }
+];
+
+const DEFAULT_JOBS: Job[] = [
+  {
+    job_id: "JOB001",
+    title: "Senior Full Stack Engineer (Next.js & Node.js)",
+    department: "Engineering",
+    location: "Riyadh HQ / Hybrid",
+    type: "full-time",
+    status: "active",
+    description: "نبحث عن مهندس برمجيات ذو خبرة عالية في تقنيات ويب جافا سكريبت الحديثة وتحديدًا Next.js و Node.js لتصميم وبناء واجهات مخصصة فائقة السرعة مع دمج الذكاء الاصطناعي.",
+    requirements: "أكثر من 5 سنوات خبرة في تطوير الويب\nخبرة ممتازة في React/Next.js/Node.js\nخبرة في التعامل مع قواعد البيانات غير العلائقية وجلسات المصادقة.",
+    work_role_id: "WR089",
+    created_at: "2026-05-01"
+  },
+  {
+    job_id: "JOB002",
+    title: "Talent Acquisition Specialist",
+    department: "Human Resources",
+    location: "Riyadh HQ / On-site",
+    type: "full-time",
+    status: "active",
+    description: "مسؤول عن إدارة دورة التوظيف الكاملة من جذب وتصفية المرشحين المميزين وإجراء المقابلات الأولية.",
+    requirements: "شهادة بكالوريوس في الموارد البشرية أو إدارة الأعمال\nمهارات تواصل تفاوضية ممتازة باللغتين العربية والإنجليزية\nخبرة لا تقل عن سنتين.",
+    work_role_id: "WR045",
+    created_at: "2026-06-01"
+  },
+  {
+    job_id: "JOB003",
+    title: "UI/UX Designer",
+    department: "Product Design",
+    location: "Remote",
+    type: "contract",
+    status: "active",
+    description: "تصميم تجارب مستخدم مميزة وتحسين واجهات التطبيق وموقع الويب الرئيسي لتسهيل تجربة الموظفين والعملاء.",
+    requirements: "معرض أعمال قوي يثبت جودة العمل وتصميم واجهات ويب وتطبيقات ذكية\nخبرة احترافية ببرنامج Figma\nفهم جيد لأساسيات تحويل التصميم إلى كود HTML/CSS.",
+    work_role_id: "WR012",
+    created_at: "2026-06-12"
+  }
+];
+
+const DEFAULT_CANDIDATES: Candidate[] = [
+  {
+    id: "CAN001",
+    candidate_name: "Faisal Bin Naif",
+    candidate_email: "faisal.naif@gmail.com",
+    phone: "+966 56 123 9988",
+    job_id: "JOB001",
+    status: "interviewed",
+    cv_url: "https://example.com/cvs/faisal_naif.pdf",
+    notes: "مهندس ممتاز ويمتلك مهارات قوية وتفاهم متكامل وخبرة سابقة في البنوك والتحول الرقمي.",
+    ai_position_title: "Full Stack Developer Assessment: Perfect Match for Next.js Roles (AI Match: 94%)",
+    created_at: "2026-05-20"
+  },
+  {
+    id: "CAN002",
+    candidate_name: "Reem Al-Qahtani",
+    candidate_email: "reem.qahtani@outlook.com",
+    phone: "+966 54 444 8877",
+    job_id: "JOB002",
+    status: "new",
+    cv_url: "https://example.com/cvs/reem_qahtani.pdf",
+    notes: "سيرة ذاتية واعدة جداً، خريجة حديثة بتقدير ممتاز مع تدريب تعاوني مميز لدى إحدى الجهات الكبرى.",
+    ai_position_title: "Junior HR Recruiter (AI Match: 81%)",
+    created_at: "2026-06-15"
+  }
+];
+
+const DEFAULT_LEAVE_REQUESTS: LeaveRequest[] = [
+  {
+    id: "LV001",
+    employee_id: "EMP001",
+    employee_name: "Ahmed Mansour",
+    type: "annual",
+    start_date: "2026-07-01",
+    end_date: "2026-07-05",
+    days: 5,
+    status: "pending",
+    reason: "إجازة سنوية قصيرة لزيارة العائلة وقضاء بعض الالتزامات الشخصية.",
+    created_at: "2026-06-14"
+  },
+  {
+    id: "LV002",
+    employee_id: "EMP003",
+    employee_name: "Bandar Al-Otaibi",
+    type: "emergency",
+    start_date: "2026-06-10",
+    end_date: "2026-06-11",
+    days: 1,
+    status: "approved",
+    reason: "ظرف عائلي طارئ يستوجب البقاء في المنزل والمتابعة.",
+    created_at: "2026-06-09"
+  }
+];
+
+const DEFAULT_PAYSLIPS: Payslip[] = [
+  {
+    id: "PAY001",
+    employee_id: "EMP001",
+    month: "2026-05",
+    basic_salary: 15000,
+    allowances: 3500,
+    deductions: 1450, // GOSI etc
+    net_salary: 17050,
+    status: "paid"
+  },
+  {
+    id: "PAY002",
+    employee_id: "EMP002",
+    month: "2026-05",
+    basic_salary: 18500,
+    allowances: 4200,
+    deductions: 1800,
+    net_salary: 20900,
+    status: "paid"
+  },
+  {
+    id: "PAY003",
+    employee_id: "EMP003",
+    month: "2026-05",
+    basic_salary: 8200,
+    allowances: 1500,
+    deductions: 750,
+    net_salary: 8950,
+    status: "paid"
+  },
+  {
+    id: "PAY004",
+    employee_id: "EMP001",
+    month: "2026-06",
+    basic_salary: 15000,
+    allowances: 3500,
+    deductions: 1450,
+    net_salary: 17050,
+    status: "pending"
+  }
+];
+
+const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: "ANN001",
+    title: "تحديث سياسة رصيد الإجازات السنوية",
+    content: "نود إفادتكم بأنه تم تفعيل نظام تسوية وحساب رصيد الإجازات السنوية الجديد بمعدل (1.75 يوم لكل شهر خدمة فعلي) وتتم الحسبة آلياً مع بداية كل شهر ميلادي لجميع الموظفين.",
+    category: "HR",
+    priority: "high",
+    created_by: "Mohamed Zaki (محمد زكي)",
+    created_at: "2026-06-01"
+  },
+  {
+    id: "ANN002",
+    title: "حفل العيد السنوي للموظفين وعائلاتهم",
+    content: "يسر قسم الاتصال المؤسسي دعوتكم لحضور حفل الاجتماع والمعايدة لربيع عام 2026 في قاعة الاحتفالات الرئيسية بفندق فورسيزونز الرياض يوم الأربعاء القادم الساعة 7 مساءً.",
+    category: "Event",
+    priority: "medium",
+    created_by: "Marketing and Communication Bureau",
+    created_at: "2026-06-15"
+  }
+];
+
+const DEFAULT_ATTENDANCE: AttendanceRecord[] = [
+  { id: "ATT001", employee_id: "EMP001", date: "2026-06-16", clock_in: "08:55", clock_out: "17:05", status: "present" },
+  { id: "ATT002", employee_id: "EMP002", date: "2026-06-16", clock_in: "08:30", clock_out: "18:00", status: "present" },
+  { id: "ATT003", employee_id: "EMP003", date: "2026-06-16", clock_in: "09:15", clock_out: "17:15", status: "late" }
+];
+
+const DEFAULT_REQUESTS: RequestItem[] = [
+  {
+    id: "REQ001",
+    employee_id: "EMP001",
+    employee_name: "Ahmed Mansour",
+    type: "salary_certificate",
+    details: "شهادة تعريف بالراتب موجهة إلى البنك السعودي الفرنسي لغرض تمويل عقاري.",
+    status: "pending",
+    created_at: "2026-06-16"
+  }
+];
+
+export function getInitialState(): DBState {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const data = fs.readFileSync(DB_FILE, "utf-8");
+      return JSON.parse(data) as DBState;
+    } catch (e) {
+      console.error("Error reading db file, regenerating defaults:", e);
+    }
+  }
+
+  // Generate initial state
+  const state: DBState = {
+    employees: DEFAULT_EMPLOYEES,
+    candidates: DEFAULT_CANDIDATES,
+    jobs: DEFAULT_JOBS,
+    leave_requests: DEFAULT_LEAVE_REQUESTS,
+    payslips: DEFAULT_PAYSLIPS,
+    announcements: DEFAULT_ANNOUNCEMENTS,
+    attendance: DEFAULT_ATTENDANCE,
+    requests: DEFAULT_REQUESTS,
+  };
+
+  saveState(state);
+  return state;
+}
+
+export function saveState(state: DBState): void {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), "utf-8");
+  } catch (e) {
+    console.error("Error writing db.json file:", e);
+  }
+}
